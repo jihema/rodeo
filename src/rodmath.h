@@ -28,6 +28,7 @@ public:
 using VecXd = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 using Vec3d = Eigen::Matrix<double, 3, 1>;
 using MatXd = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
+using DiagonalMatXd = Eigen::DiagonalMatrix<double, Eigen::Dynamic>;
 using BandLimitedMatXd = MatXd;
 // FIXME
 using Mat3d = Eigen::Matrix<double, 3,3 >;

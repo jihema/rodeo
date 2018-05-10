@@ -106,6 +106,11 @@ public:
         return m_energy;
     }
 
+    inline DiagonalMatXd const& get_inverse_mass() const
+    {
+        return m_inverse_mass;
+    }
+
 protected:
 
     void init_reference_frames();
@@ -115,6 +120,7 @@ protected:
     VecXd const* m_rest_dofs = nullptr;
     bool m_dirty = true;
     VecXd m_dofs;
+    DiagonalMatXd m_inverse_mass = DiagonalMatXd(VecXd::Ones(m_dofs.size())); // FIXME
 
     // Auxiliary data, can be purged if we're running short on memory.
     std::vector<Mat3d> m_reference_frames;
@@ -190,7 +196,18 @@ public:
     {
     }
 
+    inline VecXd const& get_velocity() const
+    {
+        return m_velocity;
+    }
+
+    inline void set_velocity(VecXd const& velocity)
+    {
+        m_velocity = velocity;
+    }
+
 protected:
+
     VecXd m_velocity;
 };
 

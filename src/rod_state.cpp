@@ -74,7 +74,7 @@ void StaticRodState<0>::compute()
         return;
     }
 
-    // Compute energy.
+    // Compute energy (internal + external).
 
     m_dirty = false;
 }
@@ -89,7 +89,7 @@ void StaticRodState<1>::compute()
         return;
     }
 
-    // Compute energy and force.
+    // Compute energy and force (internal + external).
 
     m_dirty = false;
 }
@@ -104,7 +104,7 @@ void StaticRodState<2>::compute()
         return;
     }
 
-    // Compute energy, force and Jacobian.
+    // Compute energy, force and Jacobian (internal + external).
 
     m_dirty = false;
 }
