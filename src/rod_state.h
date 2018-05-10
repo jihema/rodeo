@@ -26,18 +26,22 @@ public:
     }
 };
 
-class RodState
+template<unsigned int n> class StaticRodState;
+
+template<> class StaticRodState<0>
 {
 public:
 
-    RodState(VecXd const& rest_dofs) :
+    StaticRodState(VecXd const& rest_dofs) :
             m_rest_dofs(&rest_dofs), //
             m_dirty(true), //
             m_dofs(rest_dofs.size()), //
             m_reference_frames((rest_dofs.size() - 3) / 4), //
-            m_material_frames((rest_dofs.size() - 3) / 4), //
-            m_force(rest_dofs.size()), //
-            m_jacobian(rest_dofs.size(), rest_dofs.size())
+            m_material_frames((rest_dofs.size() - 3) / 4)
+    {
+    }
+
+    virtual ~StaticRodState()
     {
     }
 
@@ -90,7 +94,7 @@ public:
         return m_dirty;
     }
 
-    void compute();
+    virtual void compute();
 
     inline double get_energy() const
     {
@@ -102,27 +106,7 @@ public:
         return m_energy;
     }
 
-    inline VecXd const& get_force() const
-    {
-        if (m_dirty)
-        {
-            throw DirtyAccess(__PRETTY_FUNCTION__);
-        }
-
-        return m_force;
-    }
-
-    inline BandLimitedMatXd const& get_jacobian() const
-    {
-        if (m_dirty)
-        {
-            throw DirtyAccess(__PRETTY_FUNCTION__);
-        }
-
-        return m_jacobian;
-    }
-
-private:
+protected:
 
     void init_reference_frames();
     void transport_reference_frames(VecXd const& future_dofs);
@@ -137,9 +121,114 @@ private:
     std::vector<Mat3d> m_material_frames;
 
     double m_energy = 0.;
-    VecXd m_force;
-    BandLimitedMatXd m_jacobian;
+
 };
+
+template<> class StaticRodState<1> : public StaticRodState<0>
+{
+public:
+
+    StaticRodState(VecXd const& rest_dofs) :
+            StaticRodState<0>(rest_dofs), m_force(rest_dofs.size())
+    {
+    }
+
+    void compute() override;
+
+    inline VecXd const& get_force() const
+    {
+        if (m_dirty)
+        {
+            throw DirtyAccess(__PRETTY_FUNCTION__);
+        }
+
+        return m_force;
+    }
+
+protected:
+
+    VecXd m_force;
+
+};
+
+template<> class StaticRodState<2> : public StaticRodState<1>
+{
+public:
+
+    StaticRodState(VecXd const& rest_dofs) :
+            StaticRodState<1>(rest_dofs), m_jacobian(rest_dofs.size(), rest_dofs.size())
+    {
+    }
+
+    void compute() override;
+
+    inline BandLimitedMatXd const& get_jacobian() const
+    {
+        if (m_dirty)
+        {
+            throw DirtyAccess(__PRETTY_FUNCTION__);
+        }
+
+        return m_jacobian;
+    }
+
+protected:
+    BandLimitedMatXd m_jacobian;
+
+};
+
+class VelocityExtension
+{
+public:
+
+    VelocityExtension(VecXd const& initial_velocity) :
+            m_velocity(initial_velocity)
+    {
+    }
+
+    virtual ~VelocityExtension()
+    {
+    }
+
+protected:
+    VecXd m_velocity;
+};
+
+class ExplicitEulerRodState: public StaticRodState<1>, public VelocityExtension
+{
+public:
+
+    ExplicitEulerRodState(VecXd const& rest_dofs) :
+            StaticRodState<1>(rest_dofs), VelocityExtension(VecXd(rest_dofs.size()))
+    {
+    }
+
+    ExplicitEulerRodState(VecXd const& rest_dofs, VecXd const& initial_velocity) :
+            StaticRodState<1>(rest_dofs), VelocityExtension(initial_velocity)
+    {
+        assert(rest_dofs.size() == initial_velocity.size());
+    }
+
+};
+
+class ImplicitEulerRodState: public StaticRodState<2>, public VelocityExtension
+{
+public:
+
+    ImplicitEulerRodState(VecXd const& rest_dofs) :
+            StaticRodState<2>(rest_dofs), VelocityExtension(VecXd(rest_dofs.size()))
+    {
+    }
+
+    ImplicitEulerRodState(VecXd const& rest_dofs, VecXd const& initial_velocity) :
+            StaticRodState<2>(rest_dofs), VelocityExtension(initial_velocity)
+    {
+        assert(rest_dofs.size() == initial_velocity.size());
+    }
+
+};
+
+using RodState = ImplicitEulerRodState;
 
 }
 
