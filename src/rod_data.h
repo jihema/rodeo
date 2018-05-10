@@ -2,7 +2,6 @@
  * rod_data.h
  *
  *  Created on: 9 May 2018
- *      Author: jau
  */
 
 #pragma once
@@ -20,13 +19,14 @@ public:
 
     static constexpr size_t epochs = 3; // 0 = past; 1 = present; 2 = future.
 
-    RodData(size_t const num_vertices) :
-            m_rest_dofs(num_vertices), //
+    RodData(VecXd const& rest_dofs) :
+            m_rest_dofs(rest_dofs), //
             m_data(epochs)
     {
         for (size_t i = 0; i < epochs; ++i)
         {
             m_data.push_back(RodState(m_rest_dofs));
+            m_data.back().set_dofs_to_rest();
             m_data.back().compute();
         }
     }
@@ -38,7 +38,7 @@ public:
         VecXd dofs = m_data.back().get_dofs(); // TODO: forward evolution come here.
 
         m_data.push_back(m_data.front()); // Reusing allocation.
-        m_data.back().set_dofs(dofs); // Copy in evolved dofs.
+        m_data.back().set_dofs(dofs, false); // Copy in evolved dofs.
 
         m_data.back().compute(); // On demand.
     }
@@ -47,10 +47,10 @@ public:
     {
         assert(m_data.full());
 
-        VecXd dofs = m_data.back().get_dofs(); // TODO: backwards evolution come here.
+        VecXd dofs = m_data.front().get_dofs(); // TODO: backwards evolution come here.
 
         m_data.push_front(m_data.back());
-        m_data.front().set_dofs(dofs);
+        m_data.front().set_dofs(dofs, false);
 
         m_data.front().compute();
     }
