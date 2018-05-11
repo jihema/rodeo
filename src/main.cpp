@@ -2,6 +2,7 @@
 #include "rod_data.h"
 #include "rodmath.h"
 #include "explicit_euler.h"
+#include "force.h"
 
 int main()
 {
