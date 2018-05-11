@@ -16,9 +16,9 @@ int main()
     rodeo::RodData rod_data(rest_dofs);
 
     std::cout << rod_data << '\n';
-    rod_data.time_step();
+    rod_data.time_step(0.1);
     std::cout << rod_data << '\n';
-    rod_data.back_step();
+    rod_data.time_step(0.1);
     std::cout << rod_data << '\n';
 
     return 0;

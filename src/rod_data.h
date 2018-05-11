@@ -1,11 +1,10 @@
 /*
  * rod_data.h
- *
- *  Created on: 9 May 2018
  */
 
 #pragma once
 
+#include "explicit_euler.h"
 #include "rod_state.h"
 
 #include <boost/circular_buffer.hpp>
@@ -31,28 +30,22 @@ public:
         }
     }
 
-    void time_step()
+    void time_step(double const h)
     {
         assert(m_data.full());
-
-        VecXd dofs = m_data.back().get_dofs(); // TODO: forward evolution come here.
 
         m_data.push_back(m_data.front()); // Reusing allocation.
-        m_data.back().set_dofs(dofs, false); // Copy in evolved dofs.
-
-        m_data.back().compute(); // On demand.
+        RodState::Solver::time_step(m_data[2], m_data[1], h);
+        m_data[2].compute();
     }
 
-    void back_step()
+    void back_step(double const h)
     {
         assert(m_data.full());
 
-        VecXd dofs = m_data.front().get_dofs(); // TODO: backwards evolution come here.
-
-        m_data.push_front(m_data.back());
-        m_data.front().set_dofs(dofs, false);
-
-        m_data.front().compute();
+        m_data.push_front(m_data.back()); // Reusing allocation.
+        RodState::Solver::time_step(m_data[0], m_data[1], -h);
+        m_data[0].compute();
     }
 
     void print(std::ostream& os) const

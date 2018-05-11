@@ -1,7 +1,5 @@
 /*
  * rodmath.h
- *
- *  Created on: 9 mai 2018
  */
 
 #pragma once

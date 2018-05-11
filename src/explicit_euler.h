@@ -4,7 +4,6 @@
 
 #pragma once
 
-
 namespace rodeo
 {
 
@@ -14,8 +13,8 @@ class ExplicitEulerSolver
 {
 public:
 
-    static void time_step(ExplicitEulerRodState& future_state, ExplicitEulerRodState const& current_state,
-            double const h);
+    static void time_step(ExplicitEulerRodState& future_state,
+            ExplicitEulerRodState const& current_state, double const h);
 
 };
 

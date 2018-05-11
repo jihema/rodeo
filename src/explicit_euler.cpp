@@ -8,19 +8,23 @@
 namespace rodeo
 {
 
-void ExplicitEulerSolver::time_step(ExplicitEulerRodState& future_state, ExplicitEulerRodState const& current_state,
-        double const h)
+void ExplicitEulerSolver::time_step(ExplicitEulerRodState& future_state,
+        ExplicitEulerRodState const& current_state, double const h)
 {
     assert(!current_state.is_dirty());
 
-    // Copy the dofs and frames from current state to future.
-    // FIXME: technically we don't need to copy material frames...
-    static_cast<StaticRodState<0>&>(future_state) = current_state;
+    // Copy the (pointers to) fixed parameters.
+    static_cast<RodBase&>(future_state) = current_state;
 
-    future_state.set_dofs(current_state.get_dofs() + h * current_state.get_velocity(), false);
+    // Explicit step in dofs.
+    future_state.set_dofs(&current_state.get_reference_frames(),
+            current_state.get_dofs() + h * current_state.get_velocity());
 
+    // Explicit step in velocity.
     future_state.set_velocity(
-            current_state.get_velocity() + h * current_state.get_inverse_mass() * current_state.get_force());
+            current_state.get_velocity()
+                    + h * current_state.get_inverse_mass()
+                            * current_state.get_force());
 }
 
 }

@@ -1,8 +1,5 @@
 /*
  * rod_state.h
- *
- *  Created on: 9 May 2018
- *      Author: jau
  */
 
 #pragma once
@@ -17,6 +14,8 @@
 namespace rodeo
 {
 
+class ExplicitEulerSolver;
+
 class DirtyAccess: public std::runtime_error
 {
 public:
@@ -26,28 +25,48 @@ public:
     }
 };
 
-template<unsigned int n> class StaticRodState;
-
-template<> class StaticRodState<0>
+class RodBase
 {
 public:
 
-    StaticRodState(VecXd const& rest_dofs) :
-            m_rest_dofs(&rest_dofs), //
-            m_dirty(true), //
-            m_dofs(rest_dofs.size()), //
-            m_reference_frames((rest_dofs.size() - 3) / 4), //
-            m_material_frames((rest_dofs.size() - 3) / 4)
+    RodBase(VecXd const& rest_dofs) :
+            m_rest_dofs(&rest_dofs)
     {
     }
 
-    virtual ~StaticRodState()
+    inline DiagonalMatXd const& get_inverse_mass() const
+    {
+        return m_inverse_mass;
+    }
+
+    inline DiagonalMatXd const& get_mass() const
+    {
+        return m_mass;
+    }
+
+protected:
+
+    // Fixed quantities.
+    VecXd const* m_rest_dofs = nullptr;
+    DiagonalMatXd m_mass = DiagonalMatXd(VecXd::Ones(m_rest_dofs->size())); // FIXME. In fact those should be stored with the original rest_dofs.
+    DiagonalMatXd m_inverse_mass = DiagonalMatXd(
+            VecXd::Ones(m_rest_dofs->size())); // FIXME
+
+};
+
+class RodStateBase: public RodBase
+{
+public:
+    RodStateBase(VecXd const& rest_dofs) :
+            RodBase(rest_dofs), //
+            m_dofs(rest_dofs.size()), //
+            m_reference_frames((rest_dofs.size() - 3) / 4)
     {
     }
 
     void set_dofs_to_rest()
     {
-        set_dofs(*m_rest_dofs, true);
+        set_dofs(nullptr, *m_rest_dofs);
     }
 
     /**
@@ -55,17 +74,16 @@ public:
      *
      * The torsion dofs (indices 4 * i + 3) are always defined relative to some reference frames.
      *
-     * If init_frames is true, that means that the torsion dofs are defined with respect to
+     * If reference_frames is null, that means that the torsion dofs are defined with respect to
      * reference frames that are parallel-transported from an initial, arbitrary reference frame.
      * That one is determined from the initial tangent by the build_orthonormal_basis() algorithm.
      *
-     * If init_frames is false, that means that the torsion dofs are defined with respect to
+     * If reference_frames is not null, that means that the torsion dofs are defined with respect to
      * time-parallel transported reference frames (from their previous position,
      * following the move of the tangent vector).
-     *
-     * In both cases, reference and material frames are updated when setting the dofs.
      */
-    void set_dofs(VecXd const& dofs, bool const init_frames);
+    void set_dofs(std::vector<Mat3d> const* const reference_frames,
+            VecXd const& dofs);
 
     inline VecXd const& get_dofs() const
     {
@@ -94,6 +112,40 @@ public:
         return m_dirty;
     }
 
+    const std::vector<Mat3d>& get_reference_frames() const
+    {
+        return m_reference_frames;
+    }
+
+protected:
+
+    void init_reference_frames();
+    void transport_reference_frames(std::vector<Mat3d> const& reference_frames,
+            VecXd const& future_dofs);
+
+    // State quantities.
+    VecXd m_dofs;
+    std::vector<Mat3d> m_reference_frames;
+
+    bool m_dirty = true;
+};
+
+template<unsigned int n> class StaticRodState;
+
+template<> class StaticRodState<0> : public RodStateBase
+{
+public:
+
+    StaticRodState(VecXd const& rest_dofs) :
+            RodStateBase(rest_dofs), //
+            m_material_frames((rest_dofs.size() - 3) / 4)
+    {
+    }
+
+    virtual ~StaticRodState()
+    {
+    }
+
     virtual void compute();
 
     inline double get_energy() const
@@ -106,28 +158,15 @@ public:
         return m_energy;
     }
 
-    inline DiagonalMatXd const& get_inverse_mass() const
-    {
-        return m_inverse_mass;
-    }
-
 protected:
 
-    void init_reference_frames();
-    void transport_reference_frames(VecXd const& future_dofs);
     void compute_material_frames();
 
-    VecXd const* m_rest_dofs = nullptr;
-    bool m_dirty = true;
-    VecXd m_dofs;
-    DiagonalMatXd m_inverse_mass = DiagonalMatXd(VecXd::Ones(m_dofs.size())); // FIXME
-
-    // Auxiliary data, can be purged if we're running short on memory.
-    std::vector<Mat3d> m_reference_frames;
+    // Auxiliary quantities, can be purged if we're running short on memory.
     std::vector<Mat3d> m_material_frames;
 
+    // Computed quantities.
     double m_energy = 0.;
-
 };
 
 template<> class StaticRodState<1> : public StaticRodState<0>
@@ -135,7 +174,8 @@ template<> class StaticRodState<1> : public StaticRodState<0>
 public:
 
     StaticRodState(VecXd const& rest_dofs) :
-            StaticRodState<0>(rest_dofs), m_force(rest_dofs.size())
+            StaticRodState<0>(rest_dofs), //
+            m_force(rest_dofs.size())
     {
     }
 
@@ -162,7 +202,8 @@ template<> class StaticRodState<2> : public StaticRodState<1>
 public:
 
     StaticRodState(VecXd const& rest_dofs) :
-            StaticRodState<1>(rest_dofs), m_jacobian(rest_dofs.size(), rest_dofs.size())
+            StaticRodState<1>(rest_dofs), m_jacobian(rest_dofs.size(),
+                    rest_dofs.size())
     {
     }
 
@@ -214,9 +255,11 @@ protected:
 class ExplicitEulerRodState: public StaticRodState<1>, public VelocityExtension
 {
 public:
+    using Solver = ExplicitEulerSolver;
 
     ExplicitEulerRodState(VecXd const& rest_dofs) :
-            StaticRodState<1>(rest_dofs), VelocityExtension(VecXd(rest_dofs.size()))
+            StaticRodState<1>(rest_dofs), //
+            VelocityExtension(VecXd(rest_dofs.size()))
     {
     }
 
@@ -233,7 +276,8 @@ class ImplicitEulerRodState: public StaticRodState<2>, public VelocityExtension
 public:
 
     ImplicitEulerRodState(VecXd const& rest_dofs) :
-            StaticRodState<2>(rest_dofs), VelocityExtension(VecXd(rest_dofs.size()))
+            StaticRodState<2>(rest_dofs), VelocityExtension(
+                    VecXd(rest_dofs.size()))
     {
     }
 
@@ -245,7 +289,7 @@ public:
 
 };
 
-using RodState = ImplicitEulerRodState;
+using RodState = ExplicitEulerRodState;
 
 }
 
