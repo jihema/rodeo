@@ -30,6 +30,7 @@ using DiagonalMatXd = Eigen::DiagonalMatrix<double, Eigen::Dynamic>;
 using BandLimitedMatXd = MatXd;
 // FIXME
 using Mat3d = Eigen::Matrix<double, 3,3 >;
+using Vec3d = Eigen::Matrix<double,3,1>;
 
 inline Mat3d build_orthonormal_basis(Vec3d const& u)
 {
