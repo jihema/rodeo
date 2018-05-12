@@ -1,8 +1,11 @@
-#include <iostream>
-#include "rod_data.h"
+#include "forces/gravitation.h"
+#include "forces/stretching.h"
+#include "forces/composite.h"
+#include "rods/rod_data.h"
 #include "rodmath.h"
-#include "explicit_euler.h"
-#include "force.h"
+#include "solvers/explicit_euler.h"
+
+#include <iostream>
 
 int main()
 {

@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "explicit_euler.h"
-#include "rod_state.h"
+#include "../solvers/explicit_euler.h"
+#include "rod_dynamic.h"
 
 #include <boost/circular_buffer.hpp>
 

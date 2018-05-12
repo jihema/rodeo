@@ -3,7 +3,8 @@
  */
 
 #include "rod_state.h"
-#include <assert.h>
+
+#include "../forces/force_base.h"
 
 namespace rodeo
 {
@@ -77,11 +78,18 @@ void StaticRodState<0>::compute()
         return;
     }
 
+    // Internal forces.
     compute_material_frames();
+//    accumulate_energy(Stretching);
 
-    // Compute energy (internal + external).
+    // External forces.
 
     m_dirty = false;
+}
+
+void StaticRodState<0>::accumulate_energy(force::ForceBase & force)
+{
+    m_energy += force.get_energy();
 }
 
 void StaticRodState<1>::compute()
@@ -101,6 +109,11 @@ void StaticRodState<1>::compute()
     m_dirty = false;
 }
 
+void StaticRodState<1>::accumulate_force(force::ForceBase & force)
+{
+    m_force += force.get_force();
+}
+
 void StaticRodState<2>::compute()
 {
     assert(m_rest_dofs != nullptr);
@@ -116,6 +129,11 @@ void StaticRodState<2>::compute()
     // Compute energy, force and Jacobian (internal + external).
 
     m_dirty = false;
+}
+
+void StaticRodState<2>::accumulate_jacobian(force::ForceBase & force)
+{
+    m_jacobian += force.get_jacobian();
 }
 
 }

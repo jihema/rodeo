@@ -8,8 +8,10 @@
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
 
-#include <stdexcept>
+#include <assert.h>
 #include <iostream>
+#include <stddef.h>
+#include <stdexcept>
 
 namespace rodeo
 {
@@ -31,6 +33,12 @@ using BandLimitedMatXd = MatXd;
 // FIXME
 using Mat3d = Eigen::Matrix<double, 3,3 >;
 using Vec3d = Eigen::Matrix<double,3,1>;
+
+template<typename T>
+inline T sqr(T const& x)
+{
+    return x * x;
+}
 
 inline Mat3d build_orthonormal_basis(Vec3d const& u)
 {

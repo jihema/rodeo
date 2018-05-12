@@ -4,17 +4,19 @@
 
 #pragma once
 
-#include "rodmath.h"
+#include "../rodmath.h"
 
-#include <stddef.h>
-#include <assert.h>
-#include <stdexcept>
 #include <vector>
 
 namespace rodeo
 {
 
 class ExplicitEulerSolver;
+
+namespace force
+{
+class ForceBase;
+}
 
 class DirtyAccess: public std::runtime_error
 {
@@ -34,6 +36,16 @@ public:
     {
     }
 
+    inline size_t num_dofs() const
+    {
+        return m_rest_dofs->size();
+    }
+
+    inline size_t num_vertices() const
+    {
+        return (m_rest_dofs->size() + 1) / 4;
+    }
+
     inline DiagonalMatXd const& get_inverse_mass() const
     {
         return m_inverse_mass;
@@ -44,6 +56,26 @@ public:
         return m_mass;
     }
 
+    inline double get_vertex_mass(size_t i) const
+    {
+        assert(i < num_vertices());
+
+        return 1.; // FIXME
+    }
+
+    const VecXd* get_rest_dofs() const
+    {
+        return m_rest_dofs;
+    }
+
+    double get_rest_length(size_t i) const
+    {
+        assert(i < num_vertices() - 1);
+
+        return (m_rest_dofs->segment<3>(4 * i + 4)
+                - m_rest_dofs->segment<3>(4 * i)).norm();
+    }
+
 protected:
 
     // Fixed quantities.
@@ -51,7 +83,6 @@ protected:
     DiagonalMatXd m_mass = DiagonalMatXd(VecXd::Ones(m_rest_dofs->size())); // FIXME. In fact those should be stored with the original rest_dofs.
     DiagonalMatXd m_inverse_mass = DiagonalMatXd(
             VecXd::Ones(m_rest_dofs->size())); // FIXME
-
 };
 
 class RodStateBase: public RodBase
@@ -90,11 +121,6 @@ public:
         return m_dofs;
     }
 
-    inline size_t num_vertices() const
-    {
-        return (m_dofs.size() + 1) / 4;
-    }
-
     inline Vec3d get_vertex(size_t i) const
     {
         assert(i < num_vertices());
@@ -127,6 +153,8 @@ protected:
     VecXd m_dofs;
     std::vector<Mat3d> m_reference_frames;
 
+    std::vector<force::ForceBase const*> m_forces;
+
     bool m_dirty = true;
 };
 
@@ -157,6 +185,8 @@ public:
 
         return m_energy;
     }
+
+    void accumulate_energy(force::ForceBase & force);
 
 protected:
 
@@ -191,10 +221,11 @@ public:
         return m_force;
     }
 
+    void accumulate_force(force::ForceBase & force);
+
 protected:
 
     VecXd m_force;
-
 };
 
 template<> class StaticRodState<2> : public StaticRodState<1>
@@ -219,77 +250,13 @@ public:
         return m_jacobian;
     }
 
+    void accumulate_jacobian(force::ForceBase & force);
+
 protected:
     BandLimitedMatXd m_jacobian;
 
+    friend class ForceBase;
 };
-
-class VelocityExtension
-{
-public:
-
-    VelocityExtension(VecXd const& initial_velocity) :
-            m_velocity(initial_velocity)
-    {
-    }
-
-    virtual ~VelocityExtension()
-    {
-    }
-
-    inline VecXd const& get_velocity() const
-    {
-        return m_velocity;
-    }
-
-    inline void set_velocity(VecXd const& velocity)
-    {
-        m_velocity = velocity;
-    }
-
-protected:
-
-    VecXd m_velocity;
-};
-
-class ExplicitEulerRodState: public StaticRodState<1>, public VelocityExtension
-{
-public:
-    using Solver = ExplicitEulerSolver;
-
-    ExplicitEulerRodState(VecXd const& rest_dofs) :
-            StaticRodState<1>(rest_dofs), //
-            VelocityExtension(VecXd(rest_dofs.size()))
-    {
-    }
-
-    ExplicitEulerRodState(VecXd const& rest_dofs, VecXd const& initial_velocity) :
-            StaticRodState<1>(rest_dofs), VelocityExtension(initial_velocity)
-    {
-        assert(rest_dofs.size() == initial_velocity.size());
-    }
-
-};
-
-class ImplicitEulerRodState: public StaticRodState<2>, public VelocityExtension
-{
-public:
-
-    ImplicitEulerRodState(VecXd const& rest_dofs) :
-            StaticRodState<2>(rest_dofs), VelocityExtension(
-                    VecXd(rest_dofs.size()))
-    {
-    }
-
-    ImplicitEulerRodState(VecXd const& rest_dofs, VecXd const& initial_velocity) :
-            StaticRodState<2>(rest_dofs), VelocityExtension(initial_velocity)
-    {
-        assert(rest_dofs.size() == initial_velocity.size());
-    }
-
-};
-
-using RodState = ExplicitEulerRodState;
 
 }
 

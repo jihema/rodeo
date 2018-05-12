@@ -3,7 +3,7 @@
  */
 
 #include "explicit_euler.h"
-#include "rod_state.h"
+#include "../rods/rod_dynamic.h"
 
 namespace rodeo
 {
