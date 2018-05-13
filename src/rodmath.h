@@ -31,8 +31,8 @@ using MatXd = Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic>;
 using DiagonalMatXd = Eigen::DiagonalMatrix<double, Eigen::Dynamic>;
 using BandLimitedMatXd = MatXd;
 // FIXME
-using Mat3d = Eigen::Matrix<double, 3,3 >;
-using Vec3d = Eigen::Matrix<double,3,1>;
+using Mat3d = Eigen::Matrix<double, 3, 3 >;
+using Vec3d = Eigen::Matrix<double, 3, 1>;
 
 template<typename T>
 inline T sqr(T const& x)

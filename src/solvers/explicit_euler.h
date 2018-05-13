@@ -15,7 +15,6 @@ public:
 
     static void time_step(ExplicitEulerRodState& future_state,
             ExplicitEulerRodState const& current_state, double const h);
-
 };
 
 }

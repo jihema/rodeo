@@ -9,21 +9,30 @@
 
 int main()
 {
+    using namespace rodeo;
+
     static constexpr size_t num_vertices = 15;
 
-    rodeo::VecXd rest_dofs(4*num_vertices-1);
-    for (size_t i = 0; i < num_vertices;++i)
+    VecXd rest_dofs(4 * num_vertices - 1);
+    for (size_t i = 0; i < num_vertices; ++i)
     {
-        rest_dofs[4*i]=i;
+        rest_dofs[4 * i] = i;
     }
 
-    rodeo::RodData rod_data(rest_dofs);
+    RodData rod_data(rest_dofs);
 
-    std::cout << rod_data << '\n';
-    rod_data.time_step(0.1);
-    std::cout << rod_data << '\n';
-    rod_data.time_step(0.1);
-    std::cout << rod_data << '\n';
+    force::Gravitation gravitation;
+    force::Stretching stretching(1.);
+
+    force::Composite all_force;
+    all_force.add_component(&gravitation);
+    all_force.add_component(&stretching);
+    rod_data.set_force(&all_force);
+
+    for (int i = 0; i < 15; ++i)
+    {
+        rod_data.forward_step(0.01);
+    }
 
     return 0;
 }

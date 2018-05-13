@@ -16,8 +16,7 @@ class ForceBase
 {
 public:
 
-    ForceBase(RodState const& rod_state) : // TODO: use split of rod_state to pass only material_frames etc as mutable.
-            m_rod(rod_state)
+    ForceBase()
     {
     }
 
@@ -25,13 +24,27 @@ public:
     {
     }
 
-    virtual double get_energy() const = 0;
-    virtual VecXd get_force() const = 0;
+    virtual void set_rod(RodState const* rod)
+    {
+        assert(rod != nullptr);
+        m_rod = rod;
+    }
+
+    void accumulate_energy_force(RodState* rod)
+    {
+        assert(rod != nullptr);
+        set_rod(rod);
+        rod->m_potential_energy += get_potential_energy();
+        rod->m_force_vector += get_force_vector();
+    }
+
+    virtual double get_potential_energy() const = 0;
+    virtual VecXd get_force_vector() const = 0;
     virtual BandLimitedMatXd get_jacobian() const = 0;
 
 protected:
 
-    RodState const& m_rod;
+    RodState const* m_rod = nullptr;
 
     friend class Composite;
     // Just for the rod consistency assertion in Composite();
