@@ -39,20 +39,14 @@ public:
     {
         assert(m_rod_states.full());
 
-        m_rod_states.push_back(m_rod_states.front()); // Reusing allocation.
         RodState& current_state = m_rod_states[1];
         RodState& future_state = m_rod_states[2];
 
-        current_state.pre_compute();
+        m_rod_states.push_back(m_rod_states.front()); // Rotating 2->1; 1->0; 0->2.
 
-        if (m_force == nullptr)
-        {
-            future_state = current_state;
+        current_state.pre_compute(); // Erases energy/force/jacobian, computes material frames.
 
-            return;
-        }
-
-        m_force->accumulate_energy_force(&current_state);
+        RodState::Solver::compute(m_force, current_state); // If m_force is 0 this will do nothing (force vector stays zero) but we still need to do the time step below for inertia.
         current_state.m_dirty = false;
 
         std::cout << current_state << '\n';
